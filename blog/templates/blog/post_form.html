@@ -1,0 +1,39 @@
+{% extends 'account/base.html' %}
+{% load crispy_forms_tags %}
+
+
+{% block body %}    
+
+<div class="col-md-6 col-sm-12">
+    <div class="form-box">
+        <div class="form-top">
+            <div class="form-top-left">
+                <h3>New Post</h3>
+                <p>Fill in the form below to get instant access</p>
+            </div>
+            <div class="form-top-right">
+                <i class="fa fa-pencil"></i>
+            </div>
+        </div>
+        <div class="form-bottom">
+            <form method='POST' role="form" action="" class="login-form">
+                {% csrf_token %}
+                <!--Djangoの良いところ
+                　crispyを使うだけで、CreateViewではブログの投稿フォームになり、
+                  サインアップの時はユーザ名などサインアップ用のフォームになる
+                -->
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-primary">Post now!</button>
+            </form>
+            <style>
+                #hint_id_username,
+                #hint_id_password1 {
+                    display: none;
+                }
+            </style>
+        </div>
+    </div>
+
+</div>
+
+{% endblock body %}

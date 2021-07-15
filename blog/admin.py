@@ -1,6 +1,7 @@
 from django.contrib import admin
-from .models import Post, Comment
+from .models import Post
 
-# Register your models here.
+# admin画面に表示するアドミンユーザーのモデルを記述する
+
+# admin画面にregisterとして"Post"を追加する
 admin.site.register(Post)
-admin.site.register(Comment)

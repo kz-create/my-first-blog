@@ -1,86 +1,61 @@
-from django.shortcuts import render
-from django.utils import timezone
-from django.shortcuts import render, get_object_or_404
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
-from .forms import PostForm, CommentForm
-from .models import Post, Comment
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic import (
+    ListView,
+    DetailView, 
+    CreateView,
+    UpdateView,
+    DeleteView
+)
+from .models import Post
 
-def post_list(request):
-    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('published_date')
-    return render(request, 'blog/post_list.html', {'posts': posts})
 
-def post_detail(request, pk):
-    post = get_object_or_404(Post, pk=pk)
-    return render(request, 'blog/post_detail.html', {'post': post})
 
-@login_required
-def post_new(request):
-    if request.method == "POST":
-        form = PostForm(request.POST)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            #post.published_date = timezone.now()
-            post.save()
-            return redirect('post_detail', pk=post.pk)
-    else:
-        form = PostForm()
-    return render(request, 'blog/post_edit.html', {'form': form})
+class PostListView(ListView):
+    model = Post
+    
+    # template_nameの名前は指定しなければ、デフォルトで決まっている
+    # (appの名前)/(Model名前)_(Viewの名前)
+    template_name = 'blog/home.html'
+    
+    # object_nameはデフォルトだと'object'になっている
+    context_object_name = 'posts'
+    ordering = ['-date_posted']
 
-@login_required
-def post_edit(request, pk):
-    post = get_object_or_404(Post, pk=pk)
-    if request.method == "POST":
-        form = PostForm(request.POST, instance=post)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            #post.published_date = timezone.now()
-            post.save()
-            return redirect('post_detail', pk=post.pk)
-    else:
-        form = PostForm(instance=post)
-    return render(request, 'blog/post_edit.html', {'form': form})
 
-@login_required
-def post_draft_list(request):
-    posts = Post.objects.filter(published_date__isnull=True).order_by('created_date')
-    return render(request, 'blog/post_draft_list.html', {'posts': posts})
+class PostDetailView(DetailView):
+    model = Post
 
-@login_required
-def post_publish(request, pk):
-    post = get_object_or_404(Post, pk=pk)
-    post.publish()
-    return redirect('post_detail', pk=pk) 
 
-@login_required
-def post_remove(request, pk):
-    post = get_object_or_404(Post, pk=pk)
-    post.delete()
-    return redirect('post_list')
+class PostCreateView(LoginRequiredMixin, CreateView):
+    model = Post
+    fields = ['title', 'content']
 
-def add_comment_to_post(request, pk):
-    post = get_object_or_404(Post, pk=pk)
-    if request.method == "POST":
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.save()
-            return redirect('post_detail', pk=post.pk)
-    else:
-        form = CommentForm()
-    return render(request, 'blog/add_comment_to_post.html', {'form': form})
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
 
-@login_required
-def comment_approve(request, pk):
-    comment = get_object_or_404(Comment, pk=pk)
-    comment.approve()
-    return redirect('post_detail', pk=comment.post.pk)
 
-@login_required
-def comment_remove(request, pk):
-    comment = get_object_or_404(Comment, pk=pk)
-    comment.delete()
-    return redirect('post_detail', pk=comment.post.pk)
+class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Post
+    fields = ['title', 'content']
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+    def test_func(self):
+        post = self.get_object()
+        if self.request.user == post.author:
+            return True
+        return False
+
+
+class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Post
+    success_url = '/'
+
+    def test_func(self):
+        post = self.get_object()
+        if self.request.user == post.author:
+            return True
+        return False

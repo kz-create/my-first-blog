@@ -1,38 +1,23 @@
 from django.db import models
-from django.conf import settings
+from django.contrib.auth.models import User
 from django.utils import timezone
+from django.urls import reverse
 
 
-# Create your models here.
+# DBにどのようなデータを入れるのか（モデル）を定義するファイル
 
 class Post(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    text = models.TextField()
-    created_date = models.DateTimeField(default=timezone.now)
-    published_date = models.DateTimeField(blank=True, null=True)
+    content = models.TextField()
+    date_posted = models.DateTimeField(default=timezone.now)
 
-    def publish(self):
-        self.published_date = timezone.now()
-        self.save()
     
     def __str__(self):
         return self.title
 
-class Comment(models.Model):
-    post = models.ForeignKey('blog.Post', on_delete=models.CASCADE, related_name='comments')
-    author = models.CharField(max_length=200)
-    text = models.TextField()
-    created_date = models.DateTimeField(default=timezone.now)
-    approved_comment = models.BooleanField(default=False)
-
-
-    def approve(self):
-        self.approved_comment = True
-        self.save()
-
-    def approved_comments(self):
-        return self.comments.filter(approved_comment=True)
-
-    def __str__(self):
-        return self.text
+    # PostのURLは後ろにPKが入るため、URLが投稿後まで決まっていない
+    # そのため、reverseを使用し、キーワードにプライマリーキーを設定することで自動的にリダイレクトしてくれる
+    # kwargsは何が入るかまだ決まっていない時に使う
+    def get_absolute_url(self):
+        return reverse('post-detail', kwargs={'pk': self.pk})
